@@ -7,7 +7,10 @@
 
 ## Installation
 ```bash
-
+git clone git@github.com:laomuon/dumb-calculator.git
+cd dumb-calculator
+mkdir build && cd build
+cmake .. && cmake --build .
 ```
 
 ## Usage
