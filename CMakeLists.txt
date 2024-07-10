@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22.0)
 
-project(calculator)
+project(dumb-calculator)
 
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
