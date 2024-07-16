@@ -3,7 +3,9 @@
 #include <assert.h>
 #include <clocale>
 #include <cstdlib>
+#include <iterator>
 #include <optional>
+#include <stack>
 
 typedef double (*op_func)(double, double);
 
@@ -14,93 +16,50 @@ typedef struct list_item
         char c_op;
     };
     op_func func;
-    struct list_item *next;
     int is_nb;
 } list_item;
 
-typedef struct simple_list
-{
-    list_item *first_item;
-    list_item *last_item;
-    int size;
-} simple_list;
+std::stack<list_item> op_stack, out_stack;
 
-simple_list op_stack, out_stack;
-
-void add_item(simple_list *lst, double value, char c, op_func func, int is_nb)
+list_item create_item(double value, char c, op_func func, int is_nb)
 {
-    list_item *item = (list_item *)malloc(sizeof(list_item));
+    list_item item;
+    item.is_nb = is_nb;
     if (is_nb)
     {
-        item->value = value;
+        item.value = value;
+        item.func = func;
     }
     else
     {
-        item->c_op = c;
-        item->func = func;
+        item.c_op = c;
+        item.func = func;
     }
-    item->is_nb = is_nb;
-    item->next = NULL;
-    if (lst->size == 0)
-    {
-        lst->first_item = item;
-        lst->last_item = item;
-    }
-    else
-    {
-        lst->last_item->next = item;
-        lst->last_item = item;
-    }
-    lst->size++;
+    return item;
 }
 
-std::optional<double> pop_last_item(simple_list *lst)
+void add_item(std::stack<list_item> *lst, double value, char c, op_func func, int is_nb)
+{
+    lst->push(create_item(value, c, func, is_nb));
+}
+
+std::optional<double> pop_last_item(std::stack<list_item> *lst)
 {
     double c;
-    if (lst->size == 0)
+    if (lst->empty())
     {
         return std::nullopt;
     }
-    if (lst->size == 1)
+    if (lst->top().is_nb)
     {
-        if (lst->last_item->is_nb)
-        {
-            c = lst->last_item->value;
-        }
-        else
-        {
-            c = lst->last_item->c_op;
-        }
-        free(lst->last_item);
-        lst->first_item = NULL;
-        lst->last_item = NULL;
-        lst->size = 0;
-        return c;
+        c = lst->top().value;
     }
-    lst->size--;
-    list_item *temp = lst->first_item;
-    while (temp->next->next != NULL)
-    {
-        temp = temp->next;
+    else {
+        lst->pop();
+        return std::nullopt;
     }
-    if (lst->last_item->is_nb)
-    {
-        c = lst->last_item->value;
-    }
-    else
-    {
-        c = lst->last_item->c_op;
-    }
-    free(lst->last_item);
-    lst->last_item = temp;
-    lst->last_item->next = NULL;
+    lst->pop();
     return c;
-}
-
-void clear_list(simple_list *lst)
-{
-    while (lst->first_item != NULL)
-        pop_last_item(lst);
 }
 
 void op_from_stack_to_output()
@@ -109,10 +68,18 @@ void op_from_stack_to_output()
     std::optional<double> left_nb = pop_last_item(&out_stack);
     if (right_nb.has_value() && left_nb.has_value())
     {
-        op_func func = op_stack.last_item->func;
+        op_func func = op_stack.top().func;
         add_item(&out_stack, func(left_nb.value(), right_nb.value()), ' ', NULL,
                  1);
         pop_last_item(&op_stack);
+    }
+}
+
+void clear_list(std::stack<list_item> *lst)
+{
+    while (!lst->empty())
+    {
+        lst->pop();
     }
 }
 
@@ -216,8 +183,8 @@ int parse(std::string source_string, double *ret)
             auto current_func = get_op_func(*s);
             if (current_func.has_value())
             {
-                while (op_stack.size > 0 &&
-                       has_greater_precedent(op_stack.last_item->c_op, *s))
+                while (!op_stack.empty() &&
+                       has_greater_precedent(op_stack.top().c_op, *s))
                 {
                     op_from_stack_to_output();
                 }
@@ -229,7 +196,7 @@ int parse(std::string source_string, double *ret)
             }
             else if (*s == ')')
             {
-                while (op_stack.last_item->c_op != '(')
+                while (op_stack.top().c_op != '(')
                 {
                     op_from_stack_to_output();
                 }
@@ -242,10 +209,10 @@ int parse(std::string source_string, double *ret)
             s++;
         }
     }
-    while (op_stack.size > 0)
+    while (!op_stack.empty())
     {
         op_from_stack_to_output();
     }
-    *ret = out_stack.first_item->value;
+    *ret = out_stack.top().value;
     return 1;
 }

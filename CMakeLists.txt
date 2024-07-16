@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.22.0)
 
 project(dumb-calculator)
@@ -13,13 +14,12 @@ add_executable(${PROJECT_NAME} src/main.cpp src/calculator.cpp include/calculato
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-
 target_link_libraries(${PROJECT_NAME} Qt6::Core Qt6::Widgets)
 
+add_compile_options(-Wall -Wextra)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
 
-add_compile_options(-Wall -Wextra)
